@@ -44,31 +44,20 @@ DEV_IMAGE_WITH_EXTRAS_DIGEST := $$($(DOCKER) inspect --format='{{index .RepoDige
 .PHONY: build_and_push_base_image
 build_and_push_base_image:
 	$(PACKER) build \
-		-var "base_image_and_tag=ubuntu:22.04" \
-		-var "generated_image_repository=$(REPOSITORY)/base_image" \
+		-var "generated_image_repository=$(REPOSITORY)" \
 		-var "generated_image_tag=$(BASE_IMAGE_VERSION)" \
-		packer_docker_base.json
+		--only=image.docker.base_image* \
+		packer_build.pkr.hcl
 	echo $(BASE_IMAGE_VERSION) > $(BASE_IMAGE_VERSION_FILE)
 
 .PHONY: build_and_push_dev_images
 build_and_push_dev_images:
 	$(PACKER) build \
-		-var "base_image_and_tag=ubuntu:22.04" \
-		-var "generated_image_repository=$(REPOSITORY)/linter_image" \
+		-var "source_image_tag=$(LATEST_BASE_IMAGE)" \
+		-var "generated_image_repository=$(REPOSITORY)" \
 		-var "generated_image_tag=$(DEV_IMAGE_VERSION)" \
-		packer_docker_linters.json
-
-	$(PACKER) build \
-		-var "base_image_and_tag=$(REPOSITORY)/base_image:$(LATEST_BASE_IMAGE)" \
-		-var "generated_image_repository=$(REPOSITORY)/dev_image" \
-		-var "generated_image_tag=$(DEV_IMAGE_VERSION)" \
-		packer_docker_dev.json
-
-	$(PACKER) build \
-		-var "base_image_and_tag=$(REPOSITORY)/dev_image:$(DEV_IMAGE_VERSION)" \
-		-var "generated_image_repository=$(REPOSITORY)/dev_image_with_extras" \
-		-var "generated_image_tag=$(DEV_IMAGE_VERSION)" \
-		packer_docker_dev_extras.json
+		--except=image.docker.base_image* \
+		packer_build.pkr.hcl
 
 	echo "DOCKER_IMAGE_TAG=$(DEV_IMAGE_VERSION)" > $(DOCKER_PROPERTIES_FILE)
 	echo "LINTER_IMAGE_DIGEST=$(LINTER_IMAGE_DIGEST)" >> $(DOCKER_PROPERTIES_FILE)
